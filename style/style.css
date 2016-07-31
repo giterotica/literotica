@@ -1,0 +1,71 @@
+body {
+	/*margin-top: 0px;
+	margin-left: 370px;*/
+  margin: 0 auto;
+  max-width: 50em;
+}
+
+/* custom font 
+@font-face {
+    font-family: 'Monaco Regular'; 
+    src: url('./monaco.ttf'); 
+}
+
+@font-face {
+	    font-family: myFirstFont;
+			    src: url(monaco.ttf);
+				}
+
+body {
+	font-family: myFirstFont;
+}*/
+
+body{
+	font-family : monaco, Consolas, "Lucida Console", monospace;
+}
+
+
+body {
+  line-height: 1.5;
+  padding: 0em 1em;
+}
+
+h1 {
+  margin-top: 0.5em;
+  padding-top: 0.5em;
+}
+
+/* color */
+body {
+	color: #555;
+}
+
+h1,
+h2,
+strong {
+  color: #333;
+}
+
+/* link color */
+a {
+	color: #e81c4f;
+}
+
+/* more colors to body */
+body {
+  color: #566b78;
+	font-size: 13px;
+}
+
+@import 'https://fonts.googleapis.com/css?family=Roboto:300,400,500';
+
+h1 {
+	font-size: 40px;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+}
+
+
+
+
+
+
