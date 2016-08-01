@@ -10,11 +10,27 @@ BASE_URL = 'https://www.literotica.com/stories/'
 
 class Story(object):
 
-    def __init__(self,title,content,author,author_home):
-        self.title = title
-        self.content = content
-        self.author = author
-        self.author_home = author_home
+    def __init__(self, tag):
+        self.tag = tag
+        self.meta = tag.find('span',{'class' : 'b-sli-meta'})
+        self.desc_prefix = '\xa0—\xa0'
+        # title
+        self.title = self.tag.find('h3').string
+        # author
+        self.author = self.meta.find('span',{'class' : 'b-sli-author'}).find('a').string
+        # description
+        self.description = self.tag.find('span',{'class' : 'b-sli-description'}).text.replace(self.desc_prefix,'')
+        # date
+        self.date = self.meta.find('span',{'class' : 'b-sli-date'}).string
+        # rating
+        self.rating = self.meta.find('span',{'class' : 'b-sli-rating'}).string
+        # link
+        self.link = self.tag.find('h3').find('a')['href']
+        # author_home
+        self.author_home = self.meta.find('span',{'class' : 'b-sli-author'}).find('a')['href']
+
+    def __str__(self):
+        return '{0} by {1} posted on {2}, rated {3}'.format(self.title,self.author,self.date,self.rating)
 
 
 def get_soup(url=BASE_URL):
@@ -123,4 +139,3 @@ if __name__ == '__main__':
         # write contents to file
         util_write_story(_story,category_names[0])
         i += 1
-
