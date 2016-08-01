@@ -13,9 +13,9 @@ class Story(object):
     def __init__(self, tag):
         self.tag = tag
         self.meta = tag.find('span',{'class' : 'b-sli-meta'})
-        self.desc_prefix = '\xa0—\xa0'
+        self.desc_prefix = '\xa0-\xa0'
         # title
-        self.title = self.tag.find('h3').string
+        self.title = self.tag.find('h3').string.replace('/','')
         # author
         self.author = self.meta.find('span',{'class' : 'b-sli-author'}).find('a').string
         # description
@@ -23,20 +23,48 @@ class Story(object):
         # date
         self.date = self.meta.find('span',{'class' : 'b-sli-date'}).string
         # rating
-        self.rating = self.meta.find('span',{'class' : 'b-sli-rating'}).string
+        rating = self.meta.find('span',{'class' : 'b-sli-rating'})
+        if rating:
+            self.rating = rating.string
+        else:
+            self.rating = '0'
         # link
         self.link = self.tag.find('h3').find('a')['href']
         # author_home
         self.author_home = self.meta.find('span',{'class' : 'b-sli-author'}).find('a')['href']
+        # number of pages
+        self.page_count = get_max_pages(self.link,suffix='')
 
     def __str__(self):
         return '{0} by {1} posted on {2}, rated {3}'.format(self.title,self.author,self.date,self.rating)
+
+    def fetch_content(self):
+        # init content string
+        _content = ''
+        # for each page
+        for i in range(1,self.page_count+1):
+            # get soup of each page
+            soup = get_soup(self.link + '?page={}'.format(i))
+            # get content
+            content  = soup.find_all('div',{ 'class' : 'b-story-body-x'})[0]
+            # add content to _content
+            _content += str(content)
+        # add content to object
+        self.content = _content
+
+    def write(self,rel_path):
+        # open a file with title as name
+        with open('{0}/{1}.html'.format(rel_path,self.title),'w') as f:
+            # writer heading
+            f.write('<h1>{}</h1>\n'.format(self.title))
+            # author
+            f.write('<i><a href={0}>{1}</a></i>\n'.format(self.author_home,self.author))
+            f.write('{}\n'.format(self.content))
 
 
 def get_soup(url=BASE_URL):
     # raw content
     content = requests.get(url).content
-
     # soup
     return bsp(content,"lxml")
 
@@ -65,6 +93,24 @@ def get_max_pages(url,suffix='/1-page'):
 # Get page links in each category
 def util_get_pages(url, max_page):
     return ['{}/{}-page'.format(url,i) for i in range(1,max_page+1)]
+
+# Get Story objects
+def get_stories(page_links):
+    stories = []
+    i = 1
+    # for each page link
+    for link in page_links:
+        soup = get_soup(link)
+        # find all matching tags
+        tags = soup.findAll('div', { 'class' : 'b-sl-item-r'})
+        for tag in tags:
+            # create object
+            story = Story(tag)
+            print('[{0}] {1}'.format(i,story))
+            # append to list
+            stories.append(story)
+            i += 1
+    return stories
 
 # Get story links from each page in each category
 def get_story_links(page_links):
@@ -121,10 +167,13 @@ if __name__ == '__main__':
         if not os.path.exists(item):
             os.makedirs(item)
     # get count of pages
-    max_page = get_max_pages(categories[0])
+    max_page = get_max_pages(categories[3])
     # get links to all pages
     print('Getting links to all pages')
-    page_links = util_get_pages(categories[0],max_page)
+    page_links = util_get_pages(categories[3],max_page)
+    # get all Story objects
+    stories = get_stories(page_links)
+    '''
     # get links to all stories
     print('Getting links to all stories')
     story_links = get_story_links(page_links)
@@ -139,3 +188,9 @@ if __name__ == '__main__':
         # write contents to file
         util_write_story(_story,category_names[0])
         i += 1
+    '''
+    stories[111].fetch_content()
+    print('--------------------------')
+    print(stories[111])
+    print(stories[111].content)
+    print('--------------------------')
