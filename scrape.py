@@ -3,9 +3,12 @@ from bs4 import BeautifulSoup as bsp
 
 import re
 import os
+import math
 
 # g
 BASE_URL = 'https://www.literotica.com/stories/'
+HTML_HEADER = '<head><link rel = "stylesheet" href="style/style.css" type="text/css" /></head>'
+HTML_FOOTER = '<div class="footer">'
 
 
 class Story(object):
@@ -34,6 +37,10 @@ class Story(object):
         self.author_home = self.meta.find('span',{'class' : 'b-sli-author'}).find('a')['href']
         # number of pages
         self.page_count = get_max_pages(self.link,suffix='')
+        # rating as float
+        self.rating_as_float = 0.5 * math.ceil(2.0 * float(self.rating))
+        # fetch content
+        self.fetch_content()
 
     def __str__(self):
         return '{0} by {1} posted on {2}, rated {3}'.format(self.title,self.author,self.date,self.rating)
@@ -46,20 +53,23 @@ class Story(object):
             # get soup of each page
             soup = get_soup(self.link + '?page={}'.format(i))
             # get content
-            content  = soup.find_all('div',{ 'class' : 'b-story-body-x'})[0]
+            content  = soup.find('div',{ 'class' : 'b-story-body-x'})
             # add content to _content
             _content += str(content)
         # add content to object
         self.content = _content
 
-    def write(self,rel_path):
+    def write(self,prefix,rel_path):
         # open a file with title as name
-        with open('{0}/{1}.html'.format(rel_path,self.title),'w') as f:
+        with open('{0}/{1}_{2}.html'.format(rel_path,prefix,self.title),'w') as f:
+            f.write(HTML_HEADER)
             # writer heading
             f.write('<h1>{}</h1>\n'.format(self.title))
-            # author
-            f.write('<i><a href={0}>{1}</a></i>\n'.format(self.author_home,self.author))
-            f.write('{}\n'.format(self.content))
+            f.write('<span class="info"><span class="rating-static rating-{}"></span>'.format(int(self.rating_as_float * 10)) )
+            f.write('by <a href={0}>{1}</a> &nbsp;on &nbsp;{2}</span>'.format(self.author_home,self.author,self.date))
+            # rating
+            f.write('<br><br>{}\n'.format(self.content))
+            f.write('{0}<a href="{1}">Read at literotica</a></div><br><br>&nbsp;'.format(HTML_FOOTER,self.link))
 
 
 def get_soup(url=BASE_URL):
@@ -158,21 +168,48 @@ def util_write_story(story,rel_path):
         f.write('<i><a href={0}>{1}</a></i>\n'.format(story.author_home,story.author))
         f.write('{}\n'.format(story.content))
 
+def get_batch_prefixes(stories):
+    prefixes = []
+    prefix = 1
+    count = 0
+    # page counts of all stories
+    page_counts = [story.page_count for story in stories]
+    for i in range(len(page_counts)):
+        count += page_counts[i]
+        prefixes.append(prefix)
+        if count > 150:
+            count = 0
+            prefix += 1
+    return prefixes
+
+def util_write_stories(stories,prefixes,category):
+    for story,prefix in zip(stories,prefixes):
+        story.write(prefix,category)
+    
+
 # MAIN
 if __name__ == '__main__':
     categories, category_names = get_categ_links()
     # create folders for each category
     print('Getting directories for categories')
+    '''
     for item in category_names:
         if not os.path.exists(item):
             os.makedirs(item)
+    '''
+    category = categories[0]
     # get count of pages
-    max_page = get_max_pages(categories[3])
+    max_page = get_max_pages(categories[0])
     # get links to all pages
     print('Getting links to all pages')
-    page_links = util_get_pages(categories[3],max_page)
+    page_links = util_get_pages(categories[0],max_page)
     # get all Story objects
     stories = get_stories(page_links)
+    # separate stories into batches based on page count
+    batches = get_batches(stories)
+    print('Len : {}'.format(len(stories)))
+    print('Batches : {}'.format(batches))
+
     '''
     # get links to all stories
     print('Getting links to all stories')
@@ -189,8 +226,3 @@ if __name__ == '__main__':
         util_write_story(_story,category_names[0])
         i += 1
     '''
-    stories[111].fetch_content()
-    print('--------------------------')
-    print(stories[111])
-    print(stories[111].content)
-    print('--------------------------')
